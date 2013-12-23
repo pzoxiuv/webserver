@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 			while (recv(newfd, read_buffer, sizeof(read_buffer), MSG_DONTWAIT) > 0);
 
 			lua_getglobal(L, "server");
-			lua_pushstring(L, "parseReq");
+			lua_pushstring(L, "handleReq");
 			lua_gettable(L, -2);
 			lua_pushstring(L, read_buffer);
 			if (lua_pcall(L, 1, 1, 0) != 0)
