@@ -11,9 +11,9 @@ server.parseReq = function(req)
 	local reqTable = {}
     for line in req:gmatch("[^\r\n]*") do
         if reqTable["Method"] == nil then
-            reqTable["Method"] = line:sub(0, line:find(" ")-1)
-            reqTable["URL"] = line:sub(line:find(" ")+1, line:find(" ", line:find(" ")+1)-1)
-            reqTable["HTTPVer"] = line:sub(line:find(" [^ ]*$")+1)
+            reqTable["Method"] = line:sub(0, (line:find(" ") or 0)-1)
+            reqTable["URL"] = line:sub((line:find(" ") or 0)+1, (line:find(" ", (line:find(" ") or 0)+1) or 0)-1)
+            reqTable["HTTPVer"] = line:sub((line:find(" [^ ]*$") or 0)+1)
         else
             for k, v in line:gmatch("([^:]*): ([^\r\n]*)") do reqTable[k] = v end
         end
