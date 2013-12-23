@@ -3,6 +3,8 @@ local server = {}
 local codes = {[200] = "OK", ["404"] = "Not found"};
 local header = ""
 local body = ""
+
+server.port = ""
 server.response = nil
 
 function server.writeHeader(code, options)
@@ -14,6 +16,11 @@ end
 
 function server.writeBody(str)
 	body = str
+end
+
+function server.create(port_in, res)
+	server.response = res
+	server.port = server.port .. port_in
 end
 
 function server.parseReq(req)

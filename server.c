@@ -37,7 +37,7 @@ void sigchild_handler(int unuzed)
 	while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
 	int sockfd, newfd;
 	struct addrinfo hints, *server_info, *curr_ai;
@@ -50,20 +50,28 @@ int main(void)
 	char response_str[1024];
 	char read_buffer[READ_BUF_SIZE];
 
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s serverfile\n", argv[0]);
+		exit(1);
+	}
+
 	lua_State *L = lua_open();
 	luaL_openlibs(L);
-	if (luaL_loadfile(L, "example.lua") || lua_pcall(L, 0, 0, 0))
-		fprintf(stderr, "Error loading example.lua");
-
+	if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, 0, 0))
+		fprintf(stderr, "Error loading %s", argv[1]);
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;	// IPv4 or IPv6
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ((ret = getaddrinfo("127.0.0.1", "8888", &hints, &server_info)) != 0) {
+	lua_getglobal(L, "server");
+	lua_pushstring(L, "port");
+	lua_gettable(L, -2);
+	if ((ret = getaddrinfo("192.168.1.9", lua_tostring(L, -1), &hints, &server_info)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
 		exit(1);
 	}
+	lua_pop(L, 1);
 
 	if (server_info == NULL) {
 		fprintf(stderr, "server info null\n");
