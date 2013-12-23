@@ -5,7 +5,7 @@ OUT=server
 
 all: server
 
-server:
+server: server.c
 	$(CC) $(CFLAGS) -o $(OUT) server.c $(LDFLAGS)
 
 clean:

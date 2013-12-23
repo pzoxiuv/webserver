@@ -2,7 +2,8 @@ local server = {}
 
 local codes = {[200] = "OK", ["404"] = "Not found"};
 local header = ""
-server.buildHeader = nil
+local body = ""
+server.response = nil
 
 function server.writeHeader(code, options)
 	header = "HTTP/1.1 " .. code .. " " .. codes[code] .. "\r\n"
@@ -11,11 +12,14 @@ function server.writeHeader(code, options)
 	end
 end
 
+function server.writeBody(str)
+	body = str
+end
+
 function server.parseReq(req)
-	server.buildHeader(req)
+	server.response(req)
 	header = header .. "Date: " .. os.date("!%a, %d %b %Y %X GMT") .. "\r\n"
-	header = header .. "\r\n"
-	return header
+	return header .. "\r\n" .. body
 end
 
 return server

@@ -47,8 +47,7 @@ int main(void)
 	int yes = 1;
 	int ret, bytes_sent;
 	char client_addr_name[INET6_ADDRSTRLEN];
-	char header_str[1024];
-	char *body = "Hello world!";
+	char response_str[1024];
 	char read_buffer[READ_BUF_SIZE];
 
 	lua_State *L = lua_open();
@@ -128,16 +127,13 @@ int main(void)
 			lua_pushstring(L, "parseReq");
 			lua_gettable(L, -2);
 			lua_pushstring(L, read_buffer);
-
 			if (lua_pcall(L, 1, 1, 0) != 0)
 				fprintf(stderr, "%s\n", lua_tostring(L, -1));
 
-			strncpy(header_str, lua_tostring(L, -1), sizeof(header_str));
+			strncpy(response_str, lua_tostring(L, -1), sizeof(response_str));
 			lua_pop(L, 1);
 
-			if ((bytes_sent = send(newfd, header_str, strlen(header_str), 0)) == -1)
-				perror("send");
-			if ((bytes_sent = send(newfd, body, strlen(body), 0)) == -1)
+			if ((bytes_sent = send(newfd, response_str, strlen(response_str), 0)) == -1)
 				perror("send");
 
 			shutdown(newfd, SHUT_RDWR);
