@@ -1,0 +1,1 @@
+Silly little webserver.  Config is done in Lua.  See example.lua for sample config file.
