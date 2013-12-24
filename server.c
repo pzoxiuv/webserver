@@ -1,20 +1,19 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
 
 #define READ_BUF_SIZE	1024
+
+#define FILENAME	0
+#define STRING		1
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -39,16 +38,18 @@ void sigchild_handler(int unuzed)
 
 int main(int argc, char **argv)
 {
+	int yes = 1;
 	int sockfd, newfd;
+	int ret, bytes_sent, body_len, body_type;
+	FILE *body_file;
 	struct addrinfo hints, *server_info, *curr_ai;
 	struct sockaddr_storage client_info;
-	socklen_t sin_size;
 	struct sigaction sa;
-	int yes = 1;
-	int ret, bytes_sent;
+	socklen_t sin_size;
 	char client_addr_name[INET6_ADDRSTRLEN];
-	char response_str[1024];
 	char read_buffer[READ_BUF_SIZE];
+	char header_str[READ_BUF_SIZE];
+	char *body_str;
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s serverfile\n", argv[0]);
@@ -135,14 +136,39 @@ int main(int argc, char **argv)
 			lua_pushstring(L, "handleReq");
 			lua_gettable(L, -2);
 			lua_pushstring(L, read_buffer);
-			if (lua_pcall(L, 1, 1, 0) != 0)
+			if (lua_pcall(L, 1, 3, 0) != 0)
 				fprintf(stderr, "%s\n", lua_tostring(L, -1));
 
-			strncpy(response_str, lua_tostring(L, -1), sizeof(response_str));
+			if ((int)lua_tonumber(L, -1) == STRING) {
+				body_len = strlen(lua_tostring(L, -2));
+				body_str = malloc(body_len);
+				strncpy(body_str, lua_tostring(L, -2), body_len);
+				body_type = STRING;
+			}
+			else if ((int)lua_tonumber(L, -1) == FILENAME) {
+				body_file = fopen(lua_tostring(L, -2), "rb");
+				fseek(body_file, 0, SEEK_END);
+				body_len = ftell(body_file);
+				fseek(body_file, 0, SEEK_SET);
+				body_str = mmap(NULL, body_len, PROT_READ, MAP_PRIVATE, fileno(body_file), 0);
+				body_type = FILENAME;
+			}
+			lua_pop(L, 2);
+
+			strncpy(header_str, lua_tostring(L, -1), sizeof(header_str));
 			lua_pop(L, 1);
 
-			if ((bytes_sent = send(newfd, response_str, strlen(response_str), 0)) == -1)
+			if ((bytes_sent = send(newfd, header_str, strlen(header_str), 0)) == -1)
 				perror("send");
+			if ((bytes_sent = send(newfd, body_str, body_len, 0)) == -1)
+				perror("send");
+
+			if (body_type == FILENAME) {
+				munmap(body_str, body_len);
+				fclose(body_file);
+			} else if (body_type == STRING) {
+				free(body_str);
+			}
 
 			shutdown(newfd, SHUT_RDWR);
 			close(newfd);
