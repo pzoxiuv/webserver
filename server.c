@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	lua_getglobal(L, "server");
 	lua_pushstring(L, "port");
 	lua_gettable(L, -2);
-	if ((ret = getaddrinfo("192.168.1.9", lua_tostring(L, -1), &hints, &server_info)) != 0) {
+	if ((ret = getaddrinfo("0.0.0.0", lua_tostring(L, -1), &hints, &server_info)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
 		exit(1);
 	}
